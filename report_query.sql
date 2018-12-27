@@ -28,17 +28,17 @@ CREATE FUNCTION countWeekdays(date1 DATE, date2 DATE)
 
 DROP TEMPORARY TABLES IF EXISTS 
 
-	adiase_plan
-    ,adiase_mv
-    ,adiase_site
-    ,adiase_sites
-    ,adiase_study
-    ,adiase_link /*used to join plan table with site table*/
+	tabl_prefixplan
+    ,tabl_prefixmv
+    ,tabl_prefixsite
+    ,tabl_prefixsites
+    ,tabl_prefixstudy
+    ,tabl_prefixlink /*used to join plan table with site table*/
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_plan AS
+	tabl_prefixplan AS
 
     SELECT 
 		docid
@@ -52,12 +52,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,planmvstat
 		,record_status
 	FROM 
-		repdata_adiase_plan
+		repdata_tabl_prefixplan
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv AS
+	tabl_prefixmv AS
 	
     SELECT  
 		docid
@@ -80,12 +80,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,mvdate2
 		,record_status
 	FROM 
-		repdata_adiase_mv
+		repdata_tabl_prefixmv
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_site AS
+	tabl_prefixsite AS
 	
     SELECT
 		docid
@@ -96,34 +96,34 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,record_status
         ,sitemonseq
 	FROM 
-		repdata_adiase_site
+		repdata_tabl_prefixsite
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_sites AS
+	tabl_prefixsites AS
 	
     SELECT
 		label
 		,sitecode
 	FROM 
-		repdata_adiase_sites
+		repdata_tabl_prefixsites
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_study AS
+	tabl_prefixstudy AS
 	
     SELECT 
 		studyid
 		,docid
 	FROM 
-		repdata_adiase_study
+		repdata_tabl_prefixstudy
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_link AS
+	tabl_prefixlink AS
     
     SELECT
 		docid
@@ -137,7 +137,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,sitemonseq_t
 		,tblname_t
 	FROM 
-		repdata_adiase_link
+		repdata_tabl_prefixlink
 ;
 
 
@@ -146,16 +146,16 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 DROP TEMPORARY TABLES IF EXISTS
 
-	adiase_plan_2
-    ,adiase_mv_2
-    ,adiase_site_2
-    ,adiase_link_2
+	tabl_prefixplan_2
+    ,tabl_prefixmv_2
+    ,tabl_prefixsite_2
+    ,tabl_prefixlink_2
 ;
 
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_plan_2 AS
+	tabl_prefixplan_2 AS
 	
     SELECT 
 		docid
@@ -176,13 +176,13 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,CASE WHEN DAYOFWEEK(planmvdat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_state_date_is_weekend
         ,CASE WHEN DAYOFWEEK(planmvendat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_end_date_is_weekend
 	FROM 
-		adiase_plan
+		tabl_prefixplan
 	WHERE record_status = 'complete'
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_2 AS
+	tabl_prefixmv_2 AS
 	
     SELECT  
 		docid
@@ -204,13 +204,13 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,mvmultiday
 		,mvdate2
 	FROM 
-		adiase_mv
+		tabl_prefixmv
 	WHERE record_status = 'complete'
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_site_2 AS
+	tabl_prefixsite_2 AS
 	
     SELECT
 		docid
@@ -222,13 +222,13 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,countryid
         ,sitemonseq
 	FROM 
-		repdata_adiase_site
+		repdata_tabl_prefixsite
 	WHERE record_status = 'complete'
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_link_2 AS
+	tabl_prefixlink_2 AS
 
 	SELECT 
 		docid
@@ -239,7 +239,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,siteid_t
 		,sitemonseq_t
 	FROM 
-		adiase_link
+		tabl_prefixlink
 	WHERE 
 		tblname = 'PLAN'
 			AND 
@@ -254,12 +254,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
       
 DROP TEMPORARY TABLES IF EXISTS
 
-	adiase_plan_monitor
+	tabl_prefixplan_monitor
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_plan_monitor AS
+	tabl_prefixplan_monitor AS
 
 	SELECT  
 		plan.docid
@@ -285,9 +285,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 				,REMOVEWHITESPACE(site.sitemonlast)
             ) AS site_monitor
 	FROM 
-		adiase_plan_2 AS plan
+		tabl_prefixplan_2 AS plan
 			LEFT JOIN
-				adiase_link_2 AS link
+				tabl_prefixlink_2 AS link
 					ON 
 						plan.docid = link.docid
 					AND 
@@ -295,7 +295,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 					AND 
 						plan.countryid = link.countryid
 			LEFT JOIN 
-				adiase_site_2 AS site
+				tabl_prefixsite_2 AS site
 					ON 
 						link.siteid_t = site.siteid
                     AND 
@@ -311,12 +311,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 DROP TEMPORARY TABLES IF EXISTS
 
-	adiase_plan_monitor_agg
+	tabl_prefixplan_monitor_agg
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_plan_monitor_agg AS
+	tabl_prefixplan_monitor_agg AS
 
 	SELECT  
 		docid
@@ -339,7 +339,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,data_issue_plan_end_date_is_weekend
         ,CASE WHEN GROUP_CONCAT(site_monitor) IS NULL THEN 1 ELSE NULL END AS data_issue_missing_monitor_name
 	FROM 
-		adiase_plan_monitor
+		tabl_prefixplan_monitor
 	GROUP BY
 		docid
 		,countryid
@@ -366,21 +366,21 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 DROP TEMPORARY TABLES IF EXISTS 
 
-	adiase_mv_2_copied
-    ,adiase_mv_next_approvalid
-    ,adiase_mv_3
+	tabl_prefixmv_2_copied
+    ,tabl_prefixmv_next_approvalid
+    ,tabl_prefixmv_3
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_2_copied AS
+	tabl_prefixmv_2_copied AS
 
-	SELECT * FROM adiase_mv_2
+	SELECT * FROM tabl_prefixmv_2
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_next_approvalid AS
+	tabl_prefixmv_next_approvalid AS
     
     SELECT 
 		l.docid
@@ -402,8 +402,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.mvmultiday
 		,l.mvdate2
         ,MIN(r.approvalid) AS next_approval_id
-	FROM adiase_mv_2 AS l
-			LEFT JOIN adiase_mv_2_copied AS r
+	FROM tabl_prefixmv_2 AS l
+			LEFT JOIN tabl_prefixmv_2_copied AS r
 				ON l.docid = r.docid 
 					AND l.sitecounter = r.sitecounter
                     AND l.countryid = r.countryid
@@ -434,7 +434,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_3 AS
+	tabl_prefixmv_3 AS
     
     SELECT 
 		l.docid
@@ -458,8 +458,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,r.approvaldat AS next_date
         ,CASE WHEN r.approvalstage = 2 THEN 1 ELSE 0 END AS next_stage_reject
 	FROM 
-		adiase_mv_next_approvalid AS l
-			LEFT JOIN adiase_mv_2_copied AS r
+		tabl_prefixmv_next_approvalid AS l
+			LEFT JOIN tabl_prefixmv_2_copied AS r
 				ON l.docid = r.docid 
 					AND l.sitecounter = r.sitecounter
                     AND l.countryid = r.countryid
@@ -474,18 +474,18 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 DROP TEMPORARY TABLES IF EXISTS
 
-	adiase_mv_agg_1
-    ,adiase_mv_agg_2
-    ,adiase_mv_agg_3
-    ,adiase_mv_submit_reject
-    ,adiase_submit
-    ,adiase_submit_2
-    ,adiase_reject
+	tabl_prefixmv_agg_1
+    ,tabl_prefixmv_agg_2
+    ,tabl_prefixmv_agg_3
+    ,tabl_prefixmv_submit_reject
+    ,tabl_prefixsubmit
+    ,tabl_prefixsubmit_2
+    ,tabl_prefixreject
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_agg_1 AS
+	tabl_prefixmv_agg_1 AS
 
 	SELECT 
 		docid
@@ -571,7 +571,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
             THEN 1 ELSE NULL END
             AS data_issue_wrong_order_of_dates_in_rej_sub_pair
 	FROM
-		adiase_mv_3
+		tabl_prefixmv_3
 	GROUP BY 
 		docid
 		,sitecounter
@@ -600,7 +600,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_agg_2 AS
+	tabl_prefixmv_agg_2 AS
 
 	SELECT 
 		docid
@@ -658,7 +658,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,COUNT(data_issue_wrong_order_of_dates_in_rej_sub_pair) 
 			AS data_issue_wrong_order_of_dates_in_rej_sub_pair
 	FROM 
-		adiase_mv_agg_1
+		tabl_prefixmv_agg_1
 	GROUP BY 
 		docid
 		,sitecounter
@@ -669,7 +669,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_submit AS
+	tabl_prefixsubmit AS
     
     SELECT 
 		docid
@@ -682,16 +682,16 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,submission_approvalid AS approvalid
 		,submission_duration
 	FROM 
-		adiase_mv_agg_1
+		tabl_prefixmv_agg_1
 	WHERE
 		stage = 'S'
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_submit_2 AS
+	tabl_prefixsubmit_2 AS
     
-    SELECT * FROM adiase_submit
+    SELECT * FROM tabl_prefixsubmit
 ;
 
 
@@ -699,7 +699,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_reject AS
+	tabl_prefixreject AS
     
     SELECT 
 		docid
@@ -712,7 +712,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,rejection_approvalid AS approvalid
 		,rejection_duration
 	FROM 
-		adiase_mv_agg_1
+		tabl_prefixmv_agg_1
 	WHERE
 		stage = 'R'
 ;
@@ -720,7 +720,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-adiase_mv_submit_reject AS
+tabl_prefixmv_submit_reject AS
 
 	SELECT 
 		mv.docid
@@ -761,8 +761,8 @@ adiase_mv_submit_reject AS
 		,mv.data_issue_wrong_order_of_dates_in_rej_sub_pair
         ,last_submit.submission_duration AS last_submit_len
         ,last_reject.rejection_duration AS last_reject_len
-	FROM adiase_mv_agg_2 AS mv
-		LEFT JOIN adiase_submit AS first_submit
+	FROM tabl_prefixmv_agg_2 AS mv
+		LEFT JOIN tabl_prefixsubmit AS first_submit
 			ON mv.docid = first_submit.docid
 						AND mv.countryid = first_submit.countryid
 						AND mv.visitid = first_submit.visitid
@@ -771,7 +771,7 @@ adiase_mv_submit_reject AS
 								(mv.mvseq IS NULL AND first_submit.mvseq IS NULL)
 								)
 						AND mv.first_submission_approvalid = first_submit.approvalid
-			LEFT JOIN adiase_submit_2 AS last_submit
+			LEFT JOIN tabl_prefixsubmit_2 AS last_submit
 				ON mv.docid = last_submit.docid
 						AND mv.countryid = last_submit.countryid
 						AND mv.visitid = last_submit.visitid
@@ -780,7 +780,7 @@ adiase_mv_submit_reject AS
 								(mv.mvseq IS NULL AND last_submit.mvseq IS NULL)
 								)
 						AND mv.latest_submission_approvalid = last_submit.approvalid
-				LEFT JOIN adiase_reject AS last_reject
+				LEFT JOIN tabl_prefixreject AS last_reject
 					ON mv.docid = last_reject.docid
 						AND mv.countryid = last_reject.countryid
 						AND mv.visitid = last_reject.visitid
@@ -793,7 +793,7 @@ adiase_mv_submit_reject AS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_agg_3 AS
+	tabl_prefixmv_agg_3 AS
     
 	SELECT 
 		docid
@@ -889,7 +889,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
                 ELSE NULL END 
                 AS data_issue_wrong_stage_order
 	FROM 
-		adiase_mv_submit_reject
+		tabl_prefixmv_submit_reject
 ;
 
 
@@ -897,14 +897,14 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 
 DROP TEMPORARY TABLES IF EXISTS
-	adiase_mv_plan_left
-    ,adiase_mv_plan_right
-    ,adiase_mv_plan_union
+	tabl_prefixmv_plan_left
+    ,tabl_prefixmv_plan_right
+    ,tabl_prefixmv_plan_union
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_plan_left AS
+	tabl_prefixmv_plan_left AS
     
 	SELECT 
 		plan.docid
@@ -974,9 +974,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,mv.last_submit_len
         ,mv.last_reject_len
 	FROM 
-		adiase_plan_monitor_agg AS plan 
+		tabl_prefixplan_monitor_agg AS plan 
 	LEFT JOIN 
-		adiase_mv_agg_3 AS mv
+		tabl_prefixmv_agg_3 AS mv
 			ON 
 				plan.docid = mv.docid
 			AND 
@@ -988,7 +988,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_plan_right AS
+	tabl_prefixmv_plan_right AS
 
 	SELECT 
 		mv.docid
@@ -1057,9 +1057,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,mv.last_submit_len
         ,mv.last_reject_len
 	FROM 
-		adiase_plan_monitor_agg AS plan 
+		tabl_prefixplan_monitor_agg AS plan 
 	RIGHT JOIN 
-		adiase_mv_agg_3 AS mv
+		tabl_prefixmv_agg_3 AS mv
 			ON 
 				plan.docid = mv.docid
 			AND 
@@ -1070,13 +1070,13 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_plan_union AS
+	tabl_prefixmv_plan_union AS
 
-	SELECT * FROM adiase_mv_plan_left
+	SELECT * FROM tabl_prefixmv_plan_left
 
 	UNION
 	
-    SELECT * FROM adiase_mv_plan_right
+    SELECT * FROM tabl_prefixmv_plan_right
 ;
 
 
@@ -1087,12 +1087,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 DROP TEMPORARY TABLES IF EXISTS
 
-	adiase_site_sites_study
+	tabl_prefixsite_sites_study
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_site_sites_study AS
+	tabl_prefixsite_sites_study AS
 	
 	SELECT DISTINCT
 		site.docid
@@ -1103,13 +1103,13 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,sites.label AS country
 		,study.studyid AS ProtocolNumber
 	FROM 
-		adiase_site_2 AS site
+		tabl_prefixsite_2 AS site
 	INNER JOIN 
-		adiase_sites AS sites
+		tabl_prefixsites AS sites
 			ON 
 				LEFT(site.countryid,3) = LEFT(sites.sitecode,3)
 		INNER JOIN 
-			adiase_study AS study
+			tabl_prefixstudy AS study
 				ON 
 					study.docid = site.docid
 	WHERE site.siteid IS NOT NULL
@@ -1121,23 +1121,23 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 DROP TEMPORARY TABLES IF EXISTS
 
-	adiase_mv_plan_union_sites
+	tabl_prefixmv_plan_union_sites
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
-	adiase_mv_plan_union_sites AS
+	tabl_prefixmv_plan_union_sites AS
 
 	SELECT DISTINCT
 		NULL AS id
 		,s.protocolnumber
 		,CASE WHEN s.protocolnumber = '3D' THEN '3D'
 			WHEN s.protocolnumber = 'ADIASE' THEN 'Ipsen (Adiase) - 185'
-			WHEN s.protocolnumber = 'adiase_' THEN 'MS LAQ 301 Extension'
+			WHEN s.protocolnumber = 'tabl_prefix' THEN 'MS LAQ 301 Extension'
 			WHEN s.protocolnumber = 'ALTERNATIVE' THEN 'Novartis (ALTERNATIVE) - 380-29'
 			WHEN s.protocolnumber = 'ALTTO' THEN 'Novartis (ALTTO) - 380-27'
 			WHEN s.protocolnumber = 'BPS' THEN 'Grunenthal (BPS) - 214'
-			WHEN s.protocolnumber = 'adiase_EXT' THEN 'MS-LAQ-302E'
+			WHEN s.protocolnumber = 'tabl_prefixEXT' THEN 'MS-LAQ-302E'
 			WHEN s.protocolnumber = 'CD2' THEN 'CD2'
 			WHEN s.protocolnumber = 'CP-4-006' THEN 'OPKO (CP-4-006) - 205'
 			WHEN s.protocolnumber = 'MEK115306' THEN 'Novartis (MEK115306) - 380-36'
@@ -1390,9 +1390,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 				) > 14 THEN 0
         ELSE NULL END AS finalization_on_time /*if calc_mv_2_approve is <= 14 then 1, if calc_mv_2_approve > 14 then 0*/
 	FROM 
-		adiase_mv_plan_union AS u
+		tabl_prefixmv_plan_union AS u
 	LEFT JOIN 
-		adiase_site_sites_study AS s
+		tabl_prefixsite_sites_study AS s
 		 	ON 
 		 		s.docid = u.docid
 
@@ -1400,4 +1400,4 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 /****************************data and process issues*****************************/
 
 
-SELECT * FROM adiase_mv_plan_union_sites;
+SELECT * FROM tabl_prefixmv_plan_union_sites;
