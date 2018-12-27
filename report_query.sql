@@ -1133,11 +1133,11 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,s.protocolnumber
 		,CASE WHEN s.protocolnumber = '3D' THEN '3D'
 			WHEN s.protocolnumber = 'ADIASE' THEN 'Ipsen (Adiase) - 185'
-			WHEN s.protocolnumber = 'tabl_prefix' THEN 'MS LAQ 301 Extension'
+			WHEN s.protocolnumber = 'ALLEGRO' THEN 'MS LAQ 301 Extension'
 			WHEN s.protocolnumber = 'ALTERNATIVE' THEN 'Novartis (ALTERNATIVE) - 380-29'
 			WHEN s.protocolnumber = 'ALTTO' THEN 'Novartis (ALTTO) - 380-27'
 			WHEN s.protocolnumber = 'BPS' THEN 'Grunenthal (BPS) - 214'
-			WHEN s.protocolnumber = 'tabl_prefixEXT' THEN 'MS-LAQ-302E'
+			WHEN s.protocolnumber = 'BRAVO_EXT' THEN 'MS-LAQ-302E'
 			WHEN s.protocolnumber = 'CD2' THEN 'CD2'
 			WHEN s.protocolnumber = 'CP-4-006' THEN 'OPKO (CP-4-006) - 205'
 			WHEN s.protocolnumber = 'MEK115306' THEN 'Novartis (MEK115306) - 380-36'
