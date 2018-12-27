@@ -1,3 +1,6 @@
+/****** query for studies where the query number is 1 ******/
+/****** tbl_prefix should be replaced with the corresponding table prefix wherever it occurs ******/
+
 DROP FUNCTION IF EXISTS removeWhitespace;
 DELIMITER |
 
