@@ -1,4 +1,4 @@
-/****** query for studies where the query number is 1 ******/
+/****** query for studies where the query number is 2 ******/
 /****** tbl_prefix should be replaced with the corresponding table prefix wherever it occurs ******/
 
 DROP FUNCTION IF EXISTS removeWhitespace;
@@ -26,6 +26,7 @@ CREATE FUNCTION countWeekdays(date1 DATE, date2 DATE)
      - (DAYOFWEEK(IF(date1 > date2, date1, date2)) = 7);
 
 
+
 /********************Pull relevant columns from tables*********************/
 
 
@@ -47,7 +48,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -164,7 +165,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -174,7 +175,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,CASE WHEN planmvendat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_end_date
         ,CASE WHEN planmvdurat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_durat
         ,CASE WHEN planmvdurat != DATEDIFF(planmvendat,planmvdat)+1 THEN 1 ELSE NULL END AS data_issue_incorrect_plan_durat
-        ,CASE WHEN planmvtyp IS NULL THEN 1 ELSE NULL END AS data_issue_planned_visit_type
+        /*,CASE WHEN planmvtyp IS NULL THEN 1 ELSE NULL END AS data_issue_planned_visit_type*/
+        ,NULL AS data_issue_planned_visit_type
         ,CASE WHEN planmvdat > planmvendat THEN 1 ELSE NULL END AS data_issue_plan_start_after_end
         ,CASE WHEN DAYOFWEEK(planmvdat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_state_date_is_weekend
         ,CASE WHEN DAYOFWEEK(planmvendat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_end_date_is_weekend
@@ -268,7 +270,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		plan.docid
 		,plan.countryid
 		,plan.planspid
-		,plan.planmvtyp
+		/*,plan.planmvtyp*/
 		,plan.planmvid
 		,plan.planmvdat
 		,plan.planmvdurat
@@ -325,7 +327,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -347,7 +349,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -913,7 +915,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		plan.docid
 		,plan.countryid
 		,plan.planspid
-		,plan.planmvtyp
+        ,CASE WHEN plan.planmvstat = 2 THEN 2 ELSE NULL END AS planmvtyp
 		,plan.planmvid
 		,plan.planmvdat
 		,plan.planmvdurat
@@ -1154,11 +1156,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 			WHEN s.protocolnumber = 'SOLID' THEN 'MacroGenics (SOLID) - 216'
 			WHEN s.protocolnumber = 'TAMO' THEN 'Grunenthal (TAMO) - 188'
 			ELSE NULL END AS gp_pn
-		,'Yes' AS plans_supported
+		,'No' AS plans_supported
 		,s.country
 		,REMOVEWHITESPACE(s.siteid)
         ,u.site_monitors
-		,CASE WHEN u.planmvtyp = 1 THEN 'Site Initiation Visit Report'
+		,CASE WHEN planmvstat = 9 THEN NULL
+			WHEN u.planmvtyp = 1 THEN 'Site Initiation Visit Report'
 			WHEN u.planmvtyp = 2 THEN 'Monitoring Visit Report'
 			WHEN u.planmvtyp = 3 THEN 'Close out Visit Report'
 			WHEN u.planmvtyp = 4 THEN 'Pre-Study Visit Report'
