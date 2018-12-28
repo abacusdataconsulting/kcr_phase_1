@@ -458,7 +458,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.appdurat
 		,l.mvmultiday
 		,l.mvdate2
-        ,r.approvaldat AS next_date
+        ,CASE WHEN r.approvalid IS NOT NULL THEN r.approvaldat
+			WHEN r.approvalid IS NULL 
+            AND l.approvalstage IN (1,2)
+            THEN CURRENT_DATE()
+			END AS next_date
+        ,l.next_approval_id 
         ,CASE WHEN r.approvalstage = 2 THEN 1 ELSE 0 END AS next_stage_reject
 	FROM 
 		tabl_prefixmv_next_approvalid AS l
@@ -522,8 +527,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,MAX(mvdate2) AS mvendat
         ,next_date
         ,next_stage_reject
-        ,CASE WHEN approvalstage = 1 THEN CONCAT(approvaldat,',',next_date) END AS submission_next
-        ,CASE WHEN approvalstage = 2 THEN CONCAT(approvaldat,',',next_date) END AS reject_submit
+        ,CASE WHEN approvalstage = 1 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS submission_next
+        ,CASE WHEN approvalstage = 2 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS reject_submit
         ,CASE WHEN approvalstage = 1 
 			AND approvaldat >= next_date
             THEN 1
@@ -558,10 +563,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
             THEN 1 ELSE NULL END
             AS data_issue_missing_approval_date
 		,CASE WHEN approvalstage = 1
+			AND next_approval_id IS NOT NULL
 			AND next_date IS NULL
             THEN 1 ELSE NULL END
             AS data_issue_missing_date_in_sub_next_pair
 		,CASE WHEN approvalstage = 2
+			AND next_approval_id IS NOT NULL
 			AND next_date IS NULL
             THEN 1 ELSE NULL END
             AS data_issue_missing_date_in_rej_sub_pair
@@ -592,6 +599,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,mvmultiday
         ,next_date
         ,next_stage_reject
+        ,next_approval_id
 	ORDER BY 
 		docid
 		,sitecounter
