@@ -504,7 +504,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,dayid
 		,username
 		,user_full_name
-		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvperf)) AS mvperf
+		,MAX(mvperf) AS mvperf
 		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname
 		,MAX(mvdat) AS mvdat
 		,CASE WHEN approvalstage = 1 THEN 'S'
@@ -619,7 +619,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,countryid
 		,visitid
 		,mvseq
-		,SUM(mvperf) AS mvperf
+		,MAX(mvperf) AS mvperf
 		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname
 		,MAX(mvdat) AS mvdat
 		,GROUP_CONCAT(stage) AS stage
@@ -901,6 +901,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
                 AS data_issue_wrong_stage_order
 	FROM 
 		tabl_prefixmv_submit_reject
+	WHERE mvperf != 2
 ;
 
 
