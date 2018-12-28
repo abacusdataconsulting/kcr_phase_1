@@ -9,7 +9,7 @@ CREATE FUNCTION REMOVEWHITESPACE(str CHAR(250))
     DETERMINISTIC
     BEGIN
         DECLARE str_whitespace_removed CHAR(250);
-        SET str_whitespace_removed=TRIM(REPLACE(REPLACE(REPLACE(str,'\t',''),'\n',''),'\r',''));
+        SET str_whitespace_removed=TRIM(REPLACE(REPLACE(REPLACE(REPLACE(str,'\t',''),'\n',''),'\r',''),'  ',' '));
         RETURN str_whitespace_removed;
     END |
 
@@ -1217,7 +1217,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,CASE WHEN u.submission_round IS NULL THEN 0 ELSE u.submission_round END AS submission_round
 		,u.latest_submission
 		,u.last_submit_len
-		,u.reviewername
+		,REMOVEWHITESPACE(u.reviewername)
 		,CASE WHEN u.rejection_round IS NULL THEN 0 ELSE u.rejection_round END AS rejection_round
 		,u.latest_rejection
 		,u.last_reject_len
