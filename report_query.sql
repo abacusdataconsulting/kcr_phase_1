@@ -9,7 +9,7 @@ CREATE FUNCTION REMOVEWHITESPACE(str CHAR(250))
     DETERMINISTIC
     BEGIN
         DECLARE str_whitespace_removed CHAR(250);
-        SET str_whitespace_removed=TRIM(REPLACE(REPLACE(REPLACE(REPLACE(str,'\t',''),'\n',''),'\r',''),' ',' '));
+        SET str_whitespace_removed=TRIM(REPLACE(REPLACE(REPLACE(REPLACE(str,'\t',''),'\n',''),'\r',''),'  ',' '));
         RETURN str_whitespace_removed;
     END |
 
@@ -175,10 +175,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,CASE WHEN planmvendat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_end_date
         ,CASE WHEN planmvdurat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_durat
         ,CASE WHEN planmvdurat != DATEDIFF(planmvendat,planmvdat)+1
-		AND planmvdurat != countWeekdays(planmvendat,planmvdat) THEN 1
-		ELSE NULL END AS data_issue_incorrect_plan_durat
-        /*,CASE WHEN planmvtyp IS NULL THEN 1 ELSE NULL END AS data_issue_planned_visit_type*/
-        ,NULL AS data_issue_planned_visit_type
+			AND planmvdurat != countWeekdays(planmvendat,planmvdat) THEN 1
+			ELSE NULL END AS data_issue_incorrect_plan_durat
+        ,CASE WHEN planmvtyp IS NULL THEN 1 ELSE NULL END AS data_issue_planned_visit_type
         ,CASE WHEN planmvdat > planmvendat THEN 1 ELSE NULL END AS data_issue_plan_start_after_end
         ,CASE WHEN DAYOFWEEK(planmvdat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_state_date_is_weekend
         ,CASE WHEN DAYOFWEEK(planmvendat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_end_date_is_weekend
@@ -462,11 +461,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.appdurat
 		,l.mvmultiday
 		,l.mvdate2
-        	,CASE WHEN r.approvalid IS NOT NULL THEN r.approvaldat
+        ,CASE WHEN r.approvalid IS NOT NULL THEN r.approvaldat
 			WHEN r.approvalid IS NULL 
-			AND l.approvalstage IN (1,2)
-			THEN CURRENT_DATE()
+            AND l.approvalstage IN (1,2)
+            THEN CURRENT_DATE()
 			END AS next_date
+        ,l.next_approval_id 
         ,CASE WHEN r.approvalstage = 2 THEN 1 ELSE 0 END AS next_stage_reject
 	FROM 
 		tabl_prefixmv_next_approvalid AS l
@@ -602,7 +602,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,mvmultiday
         ,next_date
         ,next_stage_reject
-	,next_approval_id
+        ,next_approval_id
 	ORDER BY 
 		docid
 		,sitecounter
@@ -904,7 +904,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
                 AS data_issue_wrong_stage_order
 	FROM 
 		tabl_prefixmv_submit_reject
-		WHERE mvperf != 2
+	WHERE mvperf != 2
 ;
 
 
