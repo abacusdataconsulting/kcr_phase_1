@@ -9,7 +9,7 @@ CREATE FUNCTION REMOVEWHITESPACE(str CHAR(250))
     DETERMINISTIC
     BEGIN
         DECLARE str_whitespace_removed CHAR(250);
-        SET str_whitespace_removed=TRIM(REPLACE(REPLACE(REPLACE(str,'\t',''),'\n',''),'\r',''));
+        SET str_whitespace_removed=TRIM(REPLACE(REPLACE(REPLACE(REPLACE(str,'\t',''),'\n',''),'\r',''),'  ',' '));
         RETURN str_whitespace_removed;
     END |
 
@@ -173,7 +173,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,CASE WHEN planmvdat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_start_date
         ,CASE WHEN planmvendat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_end_date
         ,CASE WHEN planmvdurat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_durat
-        ,CASE WHEN planmvdurat != DATEDIFF(planmvendat,planmvdat)+1 THEN 1 ELSE NULL END AS data_issue_incorrect_plan_durat
+        ,CASE WHEN planmvdurat != DATEDIFF(planmvendat,planmvdat)+1
+			AND planmvdurat != countWeekdays(planmvendat,planmvdat) THEN 1
+			ELSE NULL END AS data_issue_incorrect_plan_durat
         ,CASE WHEN planmvtyp IS NULL THEN 1 ELSE NULL END AS data_issue_planned_visit_type
         ,CASE WHEN planmvdat > planmvendat THEN 1 ELSE NULL END AS data_issue_plan_start_after_end
         ,CASE WHEN DAYOFWEEK(planmvdat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_state_date_is_weekend
@@ -458,7 +460,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.appdurat
 		,l.mvmultiday
 		,l.mvdate2
-        ,r.approvaldat AS next_date
+        ,CASE WHEN r.approvalid IS NOT NULL THEN r.approvaldat
+			WHEN r.approvalid IS NULL 
+            AND l.approvalstage IN (1,2)
+            THEN CURRENT_DATE()
+			END AS next_date
+        ,l.next_approval_id 
         ,CASE WHEN r.approvalstage = 2 THEN 1 ELSE 0 END AS next_stage_reject
 	FROM 
 		tabl_prefixmv_next_approvalid AS l
@@ -499,7 +506,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,dayid
 		,username
 		,user_full_name
-		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvperf)) AS mvperf
+		,MAX(mvperf) AS mvperf
 		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname
 		,MAX(mvdat) AS mvdat
 		,CASE WHEN approvalstage = 1 THEN 'S'
@@ -522,8 +529,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,MAX(mvdate2) AS mvendat
         ,next_date
         ,next_stage_reject
-        ,CASE WHEN approvalstage = 1 THEN CONCAT(approvaldat,',',next_date) END AS submission_next
-        ,CASE WHEN approvalstage = 2 THEN CONCAT(approvaldat,',',next_date) END AS reject_submit
+        ,CASE WHEN approvalstage = 1 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS submission_next
+        ,CASE WHEN approvalstage = 2 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS reject_submit
         ,CASE WHEN approvalstage = 1 
 			AND approvaldat >= next_date
             THEN 1
@@ -558,10 +565,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
             THEN 1 ELSE NULL END
             AS data_issue_missing_approval_date
 		,CASE WHEN approvalstage = 1
+			AND next_approval_id IS NOT NULL
 			AND next_date IS NULL
             THEN 1 ELSE NULL END
             AS data_issue_missing_date_in_sub_next_pair
 		,CASE WHEN approvalstage = 2
+			AND next_approval_id IS NOT NULL
 			AND next_date IS NULL
             THEN 1 ELSE NULL END
             AS data_issue_missing_date_in_rej_sub_pair
@@ -592,6 +601,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,mvmultiday
         ,next_date
         ,next_stage_reject
+        ,next_approval_id
 	ORDER BY 
 		docid
 		,sitecounter
@@ -611,7 +621,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,countryid
 		,visitid
 		,mvseq
-		,SUM(mvperf) AS mvperf
+		,MAX(mvperf) AS mvperf
 		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname
 		,MAX(mvdat) AS mvdat
 		,GROUP_CONCAT(stage) AS stage
@@ -893,6 +903,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
                 AS data_issue_wrong_stage_order
 	FROM 
 		tabl_prefixmv_submit_reject
+	WHERE mvperf != 2
 ;
 
 
@@ -1208,7 +1219,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,CASE WHEN u.submission_round IS NULL THEN 0 ELSE u.submission_round END AS submission_round
 		,u.latest_submission
 		,u.last_submit_len
-		,u.reviewername
+		,REMOVEWHITESPACE(u.reviewername)
 		,CASE WHEN u.rejection_round IS NULL THEN 0 ELSE u.rejection_round END AS rejection_round
 		,u.latest_rejection
 		,u.last_reject_len
