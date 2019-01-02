@@ -1,4 +1,4 @@
-/****** query for studies where the query number is 1 ******/
+/****** query for studies where the query number is 4 ******/
 /****** tbl_prefix should be replaced with the corresponding table prefix wherever it occurs ******/
 
 DROP FUNCTION IF EXISTS removeWhitespace;
@@ -47,7 +47,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -69,7 +69,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,visitid
 		,approvalid
 		,mvseq
-		,dayid
+		/*,dayid*/
 		,username
 		,user_full_name
 		,mvperf
@@ -80,7 +80,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,approvalname
 		,appdurat
 		,mvmultiday
-		,mvdate2
+		/*,mvdate2*/
+		,mvendat
 		,record_status
 	FROM 
 		repdata_tabl_prefixmv
@@ -164,7 +165,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -196,7 +197,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,visitid
 		,approvalid
 		,mvseq
-		,dayid
+		/*,dayid*/
 		,username
 		,user_full_name
 		,mvperf
@@ -207,7 +208,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,approvalname
 		,appdurat
 		,mvmultiday
-		,mvdate2
+		/*,mvdate2*/
+		,mvendat
 	FROM 
 		tabl_prefixmv
 	WHERE record_status = 'complete'
@@ -270,7 +272,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		plan.docid
 		,plan.countryid
 		,plan.planspid
-		,plan.planmvtyp
+		/*,plan.planmvtyp*/
 		,plan.planmvid
 		,plan.planmvdat
 		,plan.planmvdurat
@@ -327,7 +329,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -349,7 +351,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -394,7 +396,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.visitid
 		,l.approvalid
 		,l.mvseq
-		,l.dayid
+		/*,l.dayid*/
 		,l.username
 		,l.user_full_name
 		,l.mvperf
@@ -405,7 +407,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.approvalname
 		,l.appdurat
 		,l.mvmultiday
-		,l.mvdate2
+		/*,l.mvdate2*/
+		,l.mvendat
         ,MIN(r.approvalid) AS next_approval_id
 	FROM tabl_prefixmv_2 AS l
 			LEFT JOIN tabl_prefixmv_2_copied AS r
@@ -423,7 +426,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.visitid
 		,l.approvalid
 		,l.mvseq
-		,l.dayid
+		/*,l.dayid*/
 		,l.username
 		,l.user_full_name
 		,l.mvperf
@@ -434,7 +437,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.approvalname
 		,l.appdurat
 		,l.mvmultiday
-		,l.mvdate2
+		/*,l.mvdate2*/
+		,l.mvendat
 ;
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
@@ -448,7 +452,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.visitid
 		,l.approvalid
 		,l.mvseq
-		,l.dayid
+		/*,l.dayid*/
 		,l.username
 		,l.user_full_name
 		,l.mvperf
@@ -459,7 +463,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.approvalname
 		,l.appdurat
 		,l.mvmultiday
-		,l.mvdate2
+		/*,l.mvdate2*/
+		,l.mvendat
         ,CASE WHEN r.approvalid IS NOT NULL THEN r.approvaldat
 			WHEN r.approvalid IS NULL 
             AND l.approvalstage IN (1,2)
@@ -503,7 +508,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,countryid
 		,visitid
 		,mvseq
-		,dayid
+		/*,dayid*/
 		,username
 		,user_full_name
 		,MAX(mvperf) AS mvperf
@@ -526,7 +531,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,CASE WHEN approvalstage IN (2,3) THEN approvalname END AS reviewername
 		,appdurat
 		,mvmultiday
-		,MAX(mvdate2) AS mvendat
+		,MAX(mvendat) AS mvendat
         ,next_date
         ,next_stage_reject
         ,CASE WHEN approvalstage = 1 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS submission_next
@@ -591,7 +596,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,visitid
 		,approvalid
 		,mvseq
-		,dayid
+		/*,dayid*/
 		,username
 		,user_full_name
 		,approvalstage
@@ -924,7 +929,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		plan.docid
 		,plan.countryid
 		,plan.planspid
-		,plan.planmvtyp
+		,CASE WHEN plan.planmvstat = 2 THEN 2 ELSE NULL END AS planmvtyp
 		,plan.planmvid
 		,plan.planmvdat
 		,plan.planmvdurat
@@ -1165,11 +1170,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 			WHEN s.protocolnumber = 'SOLID' THEN 'MacroGenics (SOLID) - 216'
 			WHEN s.protocolnumber = 'TAMO' THEN 'Grunenthal (TAMO) - 188'
 			ELSE NULL END AS gp_pn
-		,'Yes' AS plans_supported
+		,'No' AS plans_supported
 		,s.country
 		,REMOVEWHITESPACE(s.siteid)
         ,u.site_monitors
-		,CASE WHEN u.planmvtyp = 1 THEN 'Site Initiation Visit Report'
+		,CASE WHEN planmvstat = 9 THEN NULL		  		
+  			WHEN u.planmvtyp = 1 THEN 'Site Initiation Visit Report'
 			WHEN u.planmvtyp = 2 THEN 'Monitoring Visit Report'
 			WHEN u.planmvtyp = 3 THEN 'Close out Visit Report'
 			WHEN u.planmvtyp = 4 THEN 'Pre-Study Visit Report'
