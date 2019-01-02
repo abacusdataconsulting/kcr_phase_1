@@ -1,4 +1,4 @@
-/****** query for studies where the query number is 1 ******/
+/****** query for studies where the query number is 2 ******/
 /****** tbl_prefix should be replaced with the corresponding table prefix wherever it occurs ******/
 
 DROP FUNCTION IF EXISTS removeWhitespace;
@@ -26,6 +26,7 @@ CREATE FUNCTION countWeekdays(date1 DATE, date2 DATE)
      - (DAYOFWEEK(IF(date1 > date2, date1, date2)) = 7);
 
 
+
 /********************Pull relevant columns from tables*********************/
 
 
@@ -47,7 +48,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -164,7 +165,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -270,7 +271,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		plan.docid
 		,plan.countryid
 		,plan.planspid
-		,plan.planmvtyp
+		/*,plan.planmvtyp*/
 		,plan.planmvid
 		,plan.planmvdat
 		,plan.planmvdurat
@@ -327,7 +328,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -349,7 +350,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		docid
 		,countryid
 		,planspid
-		,planmvtyp
+		/*,planmvtyp*/
 		,planmvid
 		,planmvdat
 		,planmvdurat
@@ -924,7 +925,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		plan.docid
 		,plan.countryid
 		,plan.planspid
-		,plan.planmvtyp
+        ,CASE WHEN plan.planmvstat = 2 THEN 2 ELSE NULL END AS planmvtyp
 		,plan.planmvid
 		,plan.planmvdat
 		,plan.planmvdurat
@@ -1165,11 +1166,12 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 			WHEN s.protocolnumber = 'SOLID' THEN 'MacroGenics (SOLID) - 216'
 			WHEN s.protocolnumber = 'TAMO' THEN 'Grunenthal (TAMO) - 188'
 			ELSE NULL END AS gp_pn
-		,'Yes' AS plans_supported
+		,'No' AS plans_supported
 		,s.country
 		,REMOVEWHITESPACE(s.siteid)
         ,u.site_monitors
-		,CASE WHEN u.planmvtyp = 1 THEN 'Site Initiation Visit Report'
+		,CASE WHEN planmvstat = 9 THEN NULL
+			WHEN u.planmvtyp = 1 THEN 'Site Initiation Visit Report'
 			WHEN u.planmvtyp = 2 THEN 'Monitoring Visit Report'
 			WHEN u.planmvtyp = 3 THEN 'Close out Visit Report'
 			WHEN u.planmvtyp = 4 THEN 'Pre-Study Visit Report'
