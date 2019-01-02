@@ -173,7 +173,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,CASE WHEN planmvdat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_start_date
         ,CASE WHEN planmvendat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_end_date
         ,CASE WHEN planmvdurat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_durat
-        ,CASE WHEN planmvdurat != DATEDIFF(planmvendat,planmvdat)+1 THEN 1 ELSE NULL END AS data_issue_incorrect_plan_durat
+        ,CASE WHEN planmvdurat != DATEDIFF(planmvendat,planmvdat)+1
+			AND planmvdurat != countWeekdays(planmvendat,planmvdat) THEN 1
+			ELSE NULL END AS data_issue_incorrect_plan_durat
         ,CASE WHEN planmvtyp IS NULL THEN 1 ELSE NULL END AS data_issue_planned_visit_type
         ,CASE WHEN planmvdat > planmvendat THEN 1 ELSE NULL END AS data_issue_plan_start_after_end
         ,CASE WHEN DAYOFWEEK(planmvdat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_state_date_is_weekend
