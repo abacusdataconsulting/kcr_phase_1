@@ -1,6 +1,17 @@
+/**********
+** File: report_query.sql
+** Create date: 2019-01-11
+** Company Name: KCR/Quadratek Data Solutions
+** Project Name: CTMS Monitoring Visit Report Phase 1
+** Author: Daniel Webb, Abacus Data Consulting
+** Contact: abacus.data.consulting@gmail.com
+************/
+
 /****** query for studies where the query number is 1 ******/
 /****** tbl_prefix should be replaced with the corresponding table prefix wherever it occurs ******/
+/****** MySQL should be used to execute query ******/ 
 
+/*********define function to clean up extra spaces, tabs, newlines from text columns**********/
 DROP FUNCTION IF EXISTS removeWhitespace;
 DELIMITER |
 
@@ -15,6 +26,7 @@ CREATE FUNCTION REMOVEWHITESPACE(str CHAR(250))
 
 DELIMITER ;
 
+/***********define function to count number of weekdays between a start date and end date***********/						
 DROP FUNCTION IF EXISTS countWeekdays;
 CREATE FUNCTION countWeekdays(date1 DATE, date2 DATE)
 	RETURNS INT
@@ -31,11 +43,11 @@ CREATE FUNCTION countWeekdays(date1 DATE, date2 DATE)
 
 DROP TEMPORARY TABLES IF EXISTS 
 
-	tabl_prefixplan
-    ,tabl_prefixmv
-    ,tabl_prefixsite
-    ,tabl_prefixsites
-    ,tabl_prefixstudy
+	tabl_prefixplan /*planned monitoring visits*/
+    ,tabl_prefixmv /*details about monitoring visits and approval process*/
+    ,tabl_prefixsite /*details about sites, including monitors*/
+    ,tabl_prefixsites /*countries*/
+    ,tabl_prefixstudy /*sites*/
     ,tabl_prefixlink /*used to join plan table with site table*/
 ;
 
@@ -170,6 +182,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,planmvdurat
 		,planmvendat
 		,planmvstat
+	/*check for data issues*/
         ,CASE WHEN planmvdat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_start_date
         ,CASE WHEN planmvendat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_end_date
         ,CASE WHEN planmvdurat IS NULL THEN 1 ELSE NULL END AS data_issue_missing_plan_durat
@@ -182,6 +195,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,CASE WHEN DAYOFWEEK(planmvendat) IN (1,7) THEN 1 ELSE NULL END AS data_issue_plan_end_date_is_weekend
 	FROM 
 		tabl_prefixplan
+	/*only include complete records (see CTMS Technical Manual)*/
 	WHERE record_status = 'complete'
 ;
 
@@ -210,6 +224,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,mvdate2
 	FROM 
 		tabl_prefixmv
+	/*only include complete records (see CTMS Technical Manual)*/
 	WHERE record_status = 'complete'
 ;
 
@@ -225,9 +240,10 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,sitemonact
 		,sitemondeact
 		,countryid
-        ,sitemonseq
+        	,sitemonseq
 	FROM 
 		repdata_tabl_prefixsite
+	/*only include complete records (see CTMS Technical Manual)*/
 	WHERE record_status = 'complete'
 ;
 
@@ -288,7 +304,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 				REMOVEWHITESPACE(site.sitemonfirst)
 				,' '
 				,REMOVEWHITESPACE(site.sitemonlast)
-            ) AS site_monitor
+            ) AS site_monitor /*site monitor name is site.sitemonfirst + site.sitemonlast*/
 	FROM 
 		tabl_prefixplan_2 AS plan
 			LEFT JOIN
@@ -342,6 +358,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,data_issue_plan_start_after_end
         ,data_issue_plan_state_date_is_weekend
         ,data_issue_plan_end_date_is_weekend
+	/*check for data issues*/
         ,CASE WHEN GROUP_CONCAT(site_monitor) IS NULL THEN 1 ELSE NULL END AS data_issue_missing_monitor_name
 	FROM 
 		tabl_prefixplan_monitor
@@ -380,9 +397,10 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 	tabl_prefixmv_2_copied AS
 
-	SELECT * FROM tabl_prefixmv_2
+	SELECT * FROM tabl_prefixmv_2 /*duplicate table is needed because MySQL does permit self-joins on temporary tables*/
 ;
-
+		  
+/*get approvalid of next stage*/
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
 	tabl_prefixmv_next_approvalid AS
@@ -406,16 +424,16 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.appdurat
 		,l.mvmultiday
 		,l.mvdate2
-        ,MIN(r.approvalid) AS next_approval_id
-	FROM tabl_prefixmv_2 AS l
-			LEFT JOIN tabl_prefixmv_2_copied AS r
-				ON l.docid = r.docid 
-					AND l.sitecounter = r.sitecounter
+        ,MIN(r.approvalid) AS next_approval_id /*r.appovalid is directly after l.approvalid (l.approvalid < r.approvalid is in JOIN criteria below)*/
+	FROM tabl_prefixmv_2 AS l 
+			LEFT JOIN tabl_prefixmv_2_copied AS r /*left join because l.approvalid might be last, i.e. correspond to the MV's current stage*/
+				ON l.docid = r.docid /*records must correspond to the same monitoring visit*/
+					AND l.sitecounter = r.sitecounter 
                     AND l.countryid = r.countryid
                     AND l.visitid = r.visitid
                     AND ( l.mvseq = r.mvseq
 							OR (l.mvseq IS NULL AND r.mvseq IS NULL))
-					AND  l.approvalid < r.approvalid
+					AND  l.approvalid < r.approvalid /*r.approvalid is strictly after l.approvalid*/ 
 	GROUP BY 
 		l.docid
 		,l.sitecounter
@@ -437,6 +455,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,l.mvdate2
 ;
 
+/*get date corresponding to approvalid of next stage*/
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
 	tabl_prefixmv_3 AS
@@ -464,22 +483,22 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 			WHEN r.approvalid IS NULL 
             AND l.approvalstage IN (1,2)
             THEN CURRENT_DATE()
-			END AS next_date
+			END AS next_date /*if a record has no next stage, then it shows the stage the MV is currently in and today's date should be used as the end date for the stage*/ 
         ,l.next_approval_id 
-        ,CASE WHEN r.approvalstage = 2 THEN 1 ELSE 0 END AS next_stage_reject
+        ,CASE WHEN r.approvalstage = 2 THEN 1 ELSE 0 END AS next_stage_reject /*find if the next stage is a reject--will be used later in the calculation of rejection duration*/
 	FROM 
 		tabl_prefixmv_next_approvalid AS l
-			LEFT JOIN tabl_prefixmv_2_copied AS r
-				ON l.docid = r.docid 
+			LEFT JOIN tabl_prefixmv_2_copied AS r /*left join because l.approvalid might be last, i.e. correspond to the MV's current stage*/
+				ON l.docid = r.docid /*records must correspond to the same monitoring visit*/
 					AND l.sitecounter = r.sitecounter
                     AND l.countryid = r.countryid
                     AND l.visitid = r.visitid
                     AND ( l.mvseq = r.mvseq
 							OR (l.mvseq IS NULL AND r.mvseq IS NULL))
-                    AND l.next_approval_id = r.approvalid /*find the subsequent approval stage*/
+                    AND l.next_approval_id = r.approvalid 
 ;                    
 
-/****************************Aggregate mv table*****************************/
+/**********Aggregate mv table; want 1 row per monitoring visit rather than 1 row per approval stage**********/
 
 
 DROP TEMPORARY TABLES IF EXISTS
@@ -507,7 +526,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,username
 		,user_full_name
 		,MAX(mvperf) AS mvperf
-		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname
+		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname /*put names of all monitors into one line*/
 		,MAX(mvdat) AS mvdat
 		,CASE WHEN approvalstage = 1 THEN 'S'
 			WHEN approvalstage = 2 THEN 'R'
@@ -529,8 +548,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,MAX(mvdate2) AS mvendat
         ,next_date
         ,next_stage_reject
-        ,CASE WHEN approvalstage = 1 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS submission_next
-        ,CASE WHEN approvalstage = 2 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS reject_submit
+        ,CASE WHEN approvalstage = 1 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS submission_next /*get each sub-next date pair*/
+        ,CASE WHEN approvalstage = 2 AND next_approval_id IS NOT NULL THEN CONCAT(approvaldat,',',next_date) END AS reject_submit /*get each rej-sub date pair*/
         ,CASE WHEN approvalstage = 1 
 			AND approvaldat >= next_date
             THEN 1
@@ -543,6 +562,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
             WHEN approvalstage = 2
             AND approvaldat < next_date
             THEN DATEDIFF(next_date,approvaldat) + 1 END AS rejection_duration
+		/*find data issues*/
 		,CASE WHEN approvalstage = 1 
 				AND approvalname IS NULL 
                 AND approvalid != 1 
@@ -622,11 +642,11 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,visitid
 		,mvseq
 		,MAX(mvperf) AS mvperf
-		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname
+		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(mvrepname)) AS mvrepname /*put names of all monitors into one line*/
 		,MAX(mvdat) AS mvdat
 		,GROUP_CONCAT(stage) AS stage
-		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(first_submitter_name)) AS submitter_name
-		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(all_submitter_name)) AS stagesubmittorname
+		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(first_submitter_name)) AS submitter_name 
+		,GROUP_CONCAT(DISTINCT REMOVEWHITESPACE(all_submitter_name)) AS stagesubmittorname /*put names of all submittors into one line*/
 		,COUNT(rejection_counter) AS rejection_round
 		,COUNT(submission_counter) AS submission_round
         ,MIN(submission_approvalid) AS first_submission_approvalid
@@ -638,21 +658,21 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,MAX(CASE WHEN mvendat IS NULL THEN mvdat ELSE mvendat END) AS mvendat
 		,SUM(submission_duration) 
 				- 
-			SUM(CASE WHEN rejection_duration = 1 
+			SUM(CASE WHEN rejection_duration = 1 /*avoid double-counting day if MV is rejected on the same day it was submitted*/
 				THEN 1 ELSE 0 END
                 ) 
 			AS total_submit_len
         ,SUM(rejection_duration)
 				-
-			SUM(CASE WHEN submission_duration = 1
+			SUM(CASE WHEN submission_duration = 1 /*avoid double-counting day if MV is resubmitted on the same day it was rejected*/
 				AND next_stage_reject = 1
                 AND submission_approvalid != 1
             THEN 1 ELSE 0 END
             )
 			AS total_cra_time
-        ,GROUP_CONCAT(submission_next SEPARATOR ';') AS submission_next
-        ,GROUP_CONCAT(reject_submit SEPARATOR ';') AS reject_submit
-		,COUNT(data_issue_missing_stage_submittor_name) 
+        ,GROUP_CONCAT(submission_next SEPARATOR ';') AS submission_next /*put all submission-next pairs into one line, separated by ;*/
+        ,GROUP_CONCAT(reject_submit SEPARATOR ';') AS reject_submit /*put all reject-submit pairs into one line, separated by ;*/
+		,COUNT(data_issue_missing_stage_submittor_name) /*count here is just a convenient way to find if any data issue exists*/
 			AS data_issue_missing_stage_submittor_name
 		,COUNT(data_issue_missing_any_submittor_name) 
 			AS data_issue_missing_any_submittor_name
@@ -679,6 +699,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		,visitid
 		,mvseq
 ;
+							
+/********** Get dates corresponding to first submission, latest rejection, latest submission **********/	
+/********** Also gets durations of latest rejection and latest submission *********/							
 
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
@@ -704,7 +727,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 
 	tabl_prefixsubmit_2 AS
     
-    SELECT * FROM tabl_prefixsubmit
+    SELECT * FROM tabl_prefixsubmit /*duplicate table is needed because MySQL does permit self-joins on temporary tables*/
 ;
 
 
@@ -804,6 +827,8 @@ tabl_prefixmv_submit_reject AS
 						AND mv.latest_rejection_approvalid = last_reject.approvalid
 ;
 
+/********** Get current stage of MV and find data issues corresponding to the approval process **********/							
+							
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
 	tabl_prefixmv_agg_3 AS
@@ -827,7 +852,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 			WHEN RIGHT(stage,1) = 'A' THEN 'Approved'
 			WHEN RIGHT(stage,1) = 'R' THEN 'Rejected'
 			ELSE NULL END
-			AS current_stage
+			AS current_stage /*current stage is the last item (i.e., rightmost) item in the stage order*/
 		,approval_date
 		,reviewername
 		,stage
@@ -837,6 +862,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
         ,reject_submit
         ,last_submit_len
         ,last_reject_len
+	/*find data issues*/						
         ,CASE WHEN mvrepname IS NULL 
 			THEN 1 ELSE NULL END 
             AS data_issue_missing_first_submittor_name
@@ -903,12 +929,13 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
                 AS data_issue_wrong_stage_order
 	FROM 
 		tabl_prefixmv_submit_reject
-	WHERE mvperf != 2
+	WHERE mvperf != 2 /*exclude visits performed but not recorded in CTMS; see visit record in CTMS Technical Manual*/
 ;
 
 
-/****************************Union mv and plan tables*****************************/
-
+/********************************* Match planned visits to corresponding visits ***********************************/
+/** This is done with both a LEFT JOIN and a RIGHT JOIN of planned visits and MVs, in order to include both MVs that 
+*** have no corresponding planned visit, and planned visits that have no corresponding monitoring visit ***********/	
 
 DROP TEMPORARY TABLES IF EXISTS
 	tabl_prefixmv_plan_left
@@ -916,6 +943,7 @@ DROP TEMPORARY TABLES IF EXISTS
     ,tabl_prefixmv_plan_union
 ;
 
+/* For each planned visit, find corresponding monitoring visits (same site and date)*/							
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
 	tabl_prefixmv_plan_left AS
@@ -999,7 +1027,9 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 				plan.planmvdat = mv.mvdat
 ;
 
+/* For each monitoring visit, find corresponding planned visit (same site and date)*/
 
+							
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
 	tabl_prefixmv_plan_right AS
@@ -1082,6 +1112,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 				plan.planmvdat = mv.mvdat
 ;
 
+/* Combine results of previous steps. Note that UNION removes duplicate results*/							
 CREATE TEMPORARY TABLE IF NOT EXISTS 
 
 	tabl_prefixmv_plan_union AS
@@ -1130,7 +1161,7 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 ;
 
 
-/****************************Join site_sites_study table with union of plan and mv table*****************************/
+/***** Join site_sites_study table with union of plan and mv table and calculate final values *****/
 
 
 DROP TEMPORARY TABLES IF EXISTS
@@ -1164,8 +1195,8 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 			WHEN s.protocolnumber = 'PROLONG' THEN 'Novartis (PROLONG) - 380-30'
 			WHEN s.protocolnumber = 'SOLID' THEN 'MacroGenics (SOLID) - 216'
 			WHEN s.protocolnumber = 'TAMO' THEN 'Grunenthal (TAMO) - 188'
-			ELSE NULL END AS gp_pn
-		,'Yes' AS plans_supported
+			ELSE NULL END AS gp_pn /*GP_PN is taken from existing CTMS report; this list will need to be updated if new GP_PNs are to be included*/
+		,'Yes' AS plans_supported /*presence or absence of planmvtyp column on the plan table; this is 'No' in versions 2 and 4 of this query*/
 		,s.country
 		,REMOVEWHITESPACE(s.siteid)
         ,u.site_monitors
@@ -1411,7 +1442,6 @@ CREATE TEMPORARY TABLE IF NOT EXISTS
 		 		s.docid = u.docid
 
 ;
-/****************************data and process issues*****************************/
 
-
+/* Final output*/
 SELECT * FROM tabl_prefixmv_plan_union_sites;
